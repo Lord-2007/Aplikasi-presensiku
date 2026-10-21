@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
+import 'core/app_state.dart';
 import 'features/splash/splash_page.dart';
 
-void main() => runApp(const PresensiKuApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppState.init();
+  runApp(const PresensiKuApp());
+}
 
 class PresensiKuApp extends StatelessWidget {
   const PresensiKuApp({super.key});

@@ -3,6 +3,8 @@ export '../core/theme.dart';
 export '../core/utils.dart';
 export '../core/widgets.dart';
 export '../core/app_state.dart';
+export '../core/models.dart';
+export '../core/local_db.dart';
 export 'home/home_page.dart';
 export 'presensi/clock_in_page.dart';
 export 'presensi/clock_out_page.dart';

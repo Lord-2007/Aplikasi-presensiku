@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../core/app_state.dart';
 import '../auth/login_page.dart';
+import '../main_shell.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -19,10 +21,15 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 2800), () {
+    _timer = Timer(const Duration(milliseconds: 2000), () {
       if (!mounted) return;
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => const LoginPage()));
+      if (AppState.isLoggedIn) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const MainShell()));
+      } else {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const LoginPage()));
+      }
     });
   }
 
@@ -42,18 +49,22 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
             child: ScaleTransition(
               scale: Tween(begin: .8, end: 1.0)
                   .animate(CurvedAnimation(parent: _c, curve: Curves.easeOutBack)),
-              child: const Column(mainAxisSize: MainAxisSize.min, children: [
-                CircleAvatar(
-                  radius: 48,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.fingerprint, size: 56, color: kPrimary),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    width: 96,
+                    height: 96,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-                SizedBox(height: 20),
-                Text('PresensiKu',
+                const SizedBox(height: 20),
+                const Text('PresensiKu',
                     style: TextStyle(
                         color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800)),
-                SizedBox(height: 6),
-                Text('Presensi Karyawan Berbasis Lokasi & Biometrik',
+                const SizedBox(height: 6),
+                const Text('Presensi Karyawan Berbasis Lokasi & Biometrik',
                     style: TextStyle(color: Colors.white70, fontSize: 13)),
               ]),
             ),

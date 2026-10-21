@@ -15,7 +15,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _t = Timer.periodic(
-        const Duration(seconds: 1), (_) => setState(() => _now = DateTime.now()));
+      const Duration(seconds: 1),
+      (_) {
+        if (mounted) setState(() => _now = DateTime.now());
+      },
+    );
   }
 
   @override
@@ -34,47 +38,88 @@ class _HomePageState extends State<HomePage> {
               BoxDecoration(color: kBg, borderRadius: BorderRadius.circular(12)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: const TextStyle(color: kMuted, fontSize: 11)),
+            const SizedBox(height: 4),
             Text(val,
                 style: TextStyle(color: c, fontSize: 18, fontWeight: FontWeight.w700)),
           ]),
         ),
       );
 
-  Widget _action(String label, IconData icon, Color c, VoidCallback onTap) => Expanded(
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            height: 100,
-            decoration:
-                BoxDecoration(color: c, borderRadius: BorderRadius.circular(18)),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(icon, color: Colors.white, size: 30),
-              const SizedBox(height: 6),
-              Text(label,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700)),
-            ]),
+  Widget _action({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool isDone,
+    required VoidCallback onTap,
+  }) =>
+      Expanded(
+        child: Material(
+          color: isDone ? Colors.grey.shade300 : color,
+          borderRadius: BorderRadius.circular(18),
+          elevation: isDone ? 0 : 2,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              height: 100,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(isDone ? Icons.check_circle : icon,
+                    color: isDone ? Colors.grey.shade600 : Colors.white, size: 30),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: isDone ? Colors.grey.shade700 : Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (isDone)
+                  Text(
+                    'Selesai',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ]),
+            ),
           ),
         ),
       );
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: Listenable.merge([AppState.clockIn, AppState.clockOut]),
+        animation: Listenable.merge([
+          AppState.clockIn,
+          AppState.clockOut,
+          AppState.user,
+          AppState.attendanceHistory,
+        ]),
         builder: (_, __) {
-          final ci = AppState.clockIn.value, co = AppState.clockOut.value;
+          final ci = AppState.clockIn.value;
+          final co = AppState.clockOut.value;
+          final history = AppState.attendanceHistory.value;
+
           return Column(children: [
-            const AppHeader(AppState.nama, '${AppState.jabatan} • NIP: ${AppState.nip}',
-                trailing: StatusBadge('Aktif', Colors.white)),
+            AppHeader(
+              AppState.nama,
+              '${AppState.jabatan} • NIP: ${AppState.nip}',
+              trailing: const StatusBadge('Aktif', Colors.white),
+            ),
             Expanded(
               child: ListView(padding: const EdgeInsets.all(16), children: [
                 AppCard(
                   child: Column(children: [
                     Text(tgl(_now), style: const TextStyle(color: kMuted)),
+                    const SizedBox(height: 4),
                     Text(hms(_now),
-                        style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800)),
+                        style: const TextStyle(
+                            fontSize: 36, fontWeight: FontWeight.w800, letterSpacing: -1)),
+                    const SizedBox(height: 6),
                     const StatusBadge('Shift Reguler · 08:00–17:00 WIB', kPrimary),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     Row(children: [
                       _box('Jam Masuk', ci == null ? '--:--' : hm(ci), kGreen),
                       const SizedBox(width: 10),
@@ -83,40 +128,106 @@ class _HomePageState extends State<HomePage> {
                   ]),
                 ),
                 Row(children: [
-                  _action('CLOCK IN', Icons.fingerprint, kGreen, () {
-                    if (ci != null) return _info('Anda sudah Clock In hari ini');
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const ClockInPage()));
-                  }),
+                  _action(
+                    label: 'CLOCK IN',
+                    icon: Icons.fingerprint,
+                    color: kGreen,
+                    isDone: ci != null,
+                    onTap: () {
+                      if (ci != null) {
+                        _info('Anda sudah Clock In hari ini pada ${hm(ci)}');
+                        return;
+                      }
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const ClockInPage()));
+                    },
+                  ),
                   const SizedBox(width: 12),
-                  _action('CLOCK OUT', Icons.logout, kRed, () {
-                    if (ci == null) return _info('Lakukan Clock In terlebih dahulu');
-                    if (co != null) return _info('Anda sudah Clock Out hari ini');
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const ClockOutPage()));
-                  }),
+                  _action(
+                    label: 'CLOCK OUT',
+                    icon: Icons.logout,
+                    color: kRed,
+                    isDone: co != null,
+                    onTap: () {
+                      if (ci == null) {
+                        _info('Lakukan Clock In terlebih dahulu sebelum Clock Out');
+                        return;
+                      }
+                      if (co != null) {
+                        _info('Anda sudah Clock Out hari ini pada ${hm(co)}');
+                        return;
+                      }
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const ClockOutPage()));
+                    },
+                  ),
                 ]),
                 const SizedBox(height: 14),
                 AppCard(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Aktivitas Presensi Terakhir',
-                        style: TextStyle(fontWeight: FontWeight.w700)),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.how_to_reg, color: kGreen),
-                      title: const Text('Hari ini'),
-                      subtitle: const Text(AppState.lokasi),
-                      trailing: Text(
-                          '${ci == null ? '--:--' : hm(ci)} – ${co == null ? '--:--' : hm(co)}'),
-                    ),
-                    const ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.how_to_reg, color: kYellow),
-                      title: Text('Minggu, 4 Okt'),
-                      subtitle: Text('Terlambat 12 menit'),
-                      trailing: Text('08:12 – 17:05'),
-                    ),
-                  ]),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Aktivitas Presensi Terakhir',
+                              style: TextStyle(fontWeight: FontWeight.w700)),
+                          Text('${history.length} Catatan',
+                              style: const TextStyle(color: kMuted, fontSize: 11)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (history.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: Text('Belum ada riwayat presensi',
+                                style: TextStyle(color: kMuted)),
+                          ),
+                        )
+                      else
+                        ...history.take(4).map((rec) {
+                          final isLate = rec.status == 'Terlambat';
+                          final isCuti = rec.status == 'Cuti' || rec.status == 'Izin';
+                          final color = isLate
+                              ? kYellow
+                              : (isCuti ? kPrimary : kGreen);
+
+                          final timeStr = rec.clockIn != null
+                              ? '${hm(rec.clockIn!)} – ${rec.clockOut != null ? hm(rec.clockOut!) : '--:--'}'
+                              : '— → —';
+
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              isCuti ? Icons.event_busy : Icons.how_to_reg,
+                              color: color,
+                            ),
+                            title: Text(
+                              rec.date,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            subtitle: Text(
+                              rec.keterangan ?? rec.lokasi,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  timeStr,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                const SizedBox(height: 2),
+                                StatusBadge(rec.status, color),
+                              ],
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
                 ),
               ]),
             ),
