@@ -23,19 +23,27 @@ class LocalDb {
   }
 
   // --- Sesi Login ---
-  static bool get isLoggedIn => prefs.getBool(_keyIsLoggedIn) ?? false;
+  static bool get isLoggedIn {
+    try {
+      return prefs.getBool(_keyIsLoggedIn) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 
   static Future<void> setLoggedIn(bool value) async {
-    await prefs.setBool(_keyIsLoggedIn, value);
+    try {
+      await prefs.setBool(_keyIsLoggedIn, value);
+    } catch (_) {}
   }
 
   // --- Data User ---
   static UserModel getUser() {
-    final raw = prefs.getString(_keyUserData);
-    if (raw == null || raw.isEmpty) {
-      return UserModel.defaultUser;
-    }
     try {
+      final raw = prefs.getString(_keyUserData);
+      if (raw == null || raw.isEmpty) {
+        return UserModel.defaultUser;
+      }
       final map = jsonDecode(raw) as Map<String, dynamic>;
       return UserModel.fromJson(map);
     } catch (_) {
@@ -44,14 +52,16 @@ class LocalDb {
   }
 
   static Future<void> saveUser(UserModel user) async {
-    await prefs.setString(_keyUserData, jsonEncode(user.toJson()));
+    try {
+      await prefs.setString(_keyUserData, jsonEncode(user.toJson()));
+    } catch (_) {}
   }
 
   // --- Presensi Hari Ini ---
   static AttendanceRecord? getTodayAttendance(String todayDateStr) {
-    final raw = prefs.getString(_keyTodayAttendance);
-    if (raw == null || raw.isEmpty) return null;
     try {
+      final raw = prefs.getString(_keyTodayAttendance);
+      if (raw == null || raw.isEmpty) return null;
       final map = jsonDecode(raw) as Map<String, dynamic>;
       final record = AttendanceRecord.fromJson(map);
       // Validasi apakah record ini benar untuk tanggal hari ini
@@ -65,17 +75,18 @@ class LocalDb {
   }
 
   static Future<void> saveTodayAttendance(AttendanceRecord record) async {
-    await prefs.setString(_keyTodayAttendance, jsonEncode(record.toJson()));
+    try {
+      await prefs.setString(_keyTodayAttendance, jsonEncode(record.toJson()));
+    } catch (_) {}
   }
 
   // --- Riwayat Presensi ---
   static List<AttendanceRecord> getAttendanceHistory() {
-    final raw = prefs.getString(_keyAttendanceHistory);
-    if (raw == null || raw.isEmpty) {
-      // Seed default initial history jika pertama kali dibuka
-      return _defaultAttendanceHistory();
-    }
     try {
+      final raw = prefs.getString(_keyAttendanceHistory);
+      if (raw == null || raw.isEmpty) {
+        return _defaultAttendanceHistory();
+      }
       final list = jsonDecode(raw) as List<dynamic>;
       return list
           .map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
@@ -86,17 +97,19 @@ class LocalDb {
   }
 
   static Future<void> saveAttendanceHistory(List<AttendanceRecord> list) async {
-    final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
-    await prefs.setString(_keyAttendanceHistory, encoded);
+    try {
+      final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
+      await prefs.setString(_keyAttendanceHistory, encoded);
+    } catch (_) {}
   }
 
   // --- Riwayat Cuti ---
   static List<CutiRecord> getCutiHistory() {
-    final raw = prefs.getString(_keyCutiHistory);
-    if (raw == null || raw.isEmpty) {
-      return _defaultCutiHistory();
-    }
     try {
+      final raw = prefs.getString(_keyCutiHistory);
+      if (raw == null || raw.isEmpty) {
+        return _defaultCutiHistory();
+      }
       final list = jsonDecode(raw) as List<dynamic>;
       return list
           .map((e) => CutiRecord.fromJson(e as Map<String, dynamic>))
@@ -107,8 +120,10 @@ class LocalDb {
   }
 
   static Future<void> saveCutiHistory(List<CutiRecord> list) async {
-    final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
-    await prefs.setString(_keyCutiHistory, encoded);
+    try {
+      final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
+      await prefs.setString(_keyCutiHistory, encoded);
+    } catch (_) {}
   }
 
   // --- Logout (Hanya hapus sesi login dan hari ini, riwayat tetap aman) ---

@@ -132,7 +132,7 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Release APK (arm64-v8a only)
+      - name: Build Release APK (Universal - Multi-Architecture)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS || secrets.KLY_ALIAS }}
@@ -142,8 +142,6 @@ jobs:
           echo "${{ secrets.STORE }}" | sed '/^-----/d' | base64 -d > android/app/upload.jks || echo "${{ secrets.STORE }}" | base64 -d -i > android/app/upload.jks || echo "${{ secrets.STORE }}" | base64 -d > android/app/upload.jks
           mkdir -p ./debug-info
           flutter build apk --release \
-            --target-platform android-arm64 \
-            --obfuscate \
             --split-debug-info=./debug-info \
             --build-name="${{ env.APP_VERSION_NAME }}" \
             --build-number="${{ env.APP_VERSION_CODE }}" \

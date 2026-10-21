@@ -5,7 +5,11 @@ import 'features/splash/splash_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppState.init();
+  try {
+    await AppState.init();
+  } catch (e, stack) {
+    debugPrint('Inisialisasi AppState gagal: $e\n$stack');
+  }
   runApp(const PresensiKuApp());
 }
 

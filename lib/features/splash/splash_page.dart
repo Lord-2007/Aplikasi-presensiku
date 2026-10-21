@@ -57,6 +57,15 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                     width: 96,
                     height: 96,
                     fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: const Icon(Icons.fingerprint, size: 56, color: kPrimary),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
