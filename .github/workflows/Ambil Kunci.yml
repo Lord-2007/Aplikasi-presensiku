@@ -1,0 +1,23 @@
+name: Ambil Kunci
+
+on:
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ekstrak Keystore dan Password
+        run: |
+          echo "${{ secrets.STORE }}" | sed '/^-----/d' | base64 -d > release.jks || echo "${{ secrets.STORE }}" | base64 -d -i > release.jks || echo "${{ secrets.STORE }}" | base64 -d > release.jks
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS || secrets.KLY_ALIAS }}" > info.txt
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> info.txt
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> info.txt
+
+      - name: Upload Jadi File Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: kunci-rahasia
+          path: |
+            release.jks
+            info.txt

@@ -1,0 +1,200 @@
+# https://github.com/marketplace/actions/publish-release
+
+name: Generate APK
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Format versi: 1.0.0 atau v1.0.0 (misal: 1.2.6, v1.2.6, V1.2.6). Kosongkan untuk auto-increment dari tag terakhir.'
+        required: false
+        type: string
+      notes:
+        description: 'Catatan rilis khusus (kosongkan untuk otomatis menggunakan pesan & deskripsi commit).'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Diperlukan agar semua git tag tersedia
+
+      - name: Resolve version (auto-increment atau manual)
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.version }}" ]; then
+            # Mode manual: versi diisi secara eksplisit
+            RAW_VERSION="${{ inputs.version }}"
+
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            # Trigger dari push tag langsung (misal: git push tag v1.3.5)
+            RAW_VERSION="${{ github.ref_name }}"
+
+          elif echo "$GITHUB_REF" | grep -q 'refs/heads/release/'; then
+            # Push ke branch release/x.y.z
+            RAW_VERSION="${GITHUB_REF#refs/heads/release/}"
+
+          else
+            # Push ke main -> auto-increment patch dari tag terakhir
+            LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+            if [ -z "$LATEST_TAG" ]; then
+              echo "Tidak ada tag sebelumnya, menggunakan versi awal: 1.0.0"
+              LATEST_TAG="v1.0.0"
+            fi
+            echo "Tag terakhir ditemukan: $LATEST_TAG"
+            echo "PREVIOUS_TAG=$LATEST_TAG" >> "$GITHUB_ENV"
+
+            # Hapus prefix v/V lalu pisahkan komponen
+            CLEAN_TAG=$(echo "$LATEST_TAG" | sed -E 's/^[vV]//')
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_TAG"
+            NEW_PATCH=$((PATCH + 1))
+            RAW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+            echo "Auto-increment: $LATEST_TAG -> v${RAW_VERSION}"
+          fi
+
+          # Bersihkan whitespace
+          RAW_VERSION=$(echo "$RAW_VERSION" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+          if [ -z "$RAW_VERSION" ]; then
+            echo "::error::Tidak berhasil menentukan versi."
+            exit 1
+          fi
+
+          # Validasi format
+          if ! echo "$RAW_VERSION" | grep -Eqi '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$'; then
+            echo "::error::Format version tidak valid: '$RAW_VERSION'. Gunakan format 1.0.0 atau v1.0.0."
+            exit 1
+          fi
+
+          # Hapus prefix v/V
+          NORMALIZED_VERSION=$(echo "$RAW_VERSION" | sed -E 's/^[vV]//')
+
+          # Lengkapi jika hanya 2 angka (misal: 1.2 -> 1.2.0)
+          if echo "$NORMALIZED_VERSION" | grep -Eq '^[0-9]+\.[0-9]+$'; then
+            NORMALIZED_VERSION="${NORMALIZED_VERSION}.0"
+          fi
+
+          echo "NORMALIZED_VERSION=${NORMALIZED_VERSION}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=v${NORMALIZED_VERSION}" >> "$GITHUB_ENV"
+          echo "Versi final: ${NORMALIZED_VERSION} (tag: v${NORMALIZED_VERSION})"
+
+      - name: Cek apakah tag sudah ada di remote
+        run: |
+          if [ "${{ github.ref_type }}" != "tag" ]; then
+            if git ls-remote --tags origin | grep -q "refs/tags/v${NORMALIZED_VERSION}$"; then
+              echo "::error::Tag v${NORMALIZED_VERSION} sudah ada di remote. Rilis dibatalkan untuk menghindari duplikasi."
+              exit 1
+            fi
+            echo "Tag v${NORMALIZED_VERSION} belum ada, melanjutkan build..."
+          else
+            echo "Trigger berasal dari push tag, melanjutkan build..."
+          fi
+
+      - name: Set release version metadata
+        run: |
+          APP_VERSION_NAME="${NORMALIZED_VERSION}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$NORMALIZED_VERSION"
+          APP_VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+
+          echo "APP_VERSION_NAME=$APP_VERSION_NAME" >> "$GITHUB_ENV"
+          echo "APP_VERSION_CODE=$APP_VERSION_CODE" >> "$GITHUB_ENV"
+          echo "Release version: $APP_VERSION_NAME (versionCode: $APP_VERSION_CODE)"
+
+      - name: Set ENV
+        run: |
+          echo "date_today=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+          echo "repository_name=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Release APK (arm64-v8a only)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || secrets.KLY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          APP_GITHUB_TOKEN: ${{ secrets.APP_GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.STORE }}" | sed '/^-----/d' | base64 -d > android/app/upload.jks || echo "${{ secrets.STORE }}" | base64 -d -i > android/app/upload.jks || echo "${{ secrets.STORE }}" | base64 -d > android/app/upload.jks
+          mkdir -p ./debug-info
+          flutter build apk --release \
+            --target-platform android-arm64 \
+            --obfuscate \
+            --split-debug-info=./debug-info \
+            --build-name="${{ env.APP_VERSION_NAME }}" \
+            --build-number="${{ env.APP_VERSION_CODE }}" \
+            --dart-define="APP_GITHUB_TOKEN=${{ secrets.APP_GITHUB_TOKEN }}"
+          rm -f android/app/upload.jks
+
+      - name: Show APK files
+        run: find build/app/outputs/flutter-apk -type f -name "*.apk" -print
+
+      - name: Prepare APK for Release
+        run: |
+          APK_FILE=$(find build/app/outputs/flutter-apk -type f -name "*release*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "::error::File APK tidak ditemukan di build/app/outputs/flutter-apk!"
+            exit 1
+          fi
+          echo "Ditemukan file APK: $APK_FILE"
+          cp "$APK_FILE" "build/app/outputs/flutter-apk/PresensiKu-${{ env.RELEASE_TAG }}.apk"
+
+      - name: Generate Release Notes
+        env:
+          INPUT_NOTES: ${{ inputs.notes }}
+        run: |
+          if [ -n "$INPUT_NOTES" ]; then
+            printf "%s\n" "$INPUT_NOTES" > release_notes.md
+          elif [ -n "${PREVIOUS_TAG}" ] && git rev-parse "${PREVIOUS_TAG}" >/dev/null 2>&1; then
+            COMMIT_COUNT=$(git rev-list --count "${PREVIOUS_TAG}..HEAD" 2>/dev/null || echo 1)
+            if [ "$COMMIT_COUNT" -gt 1 ]; then
+              git log "${PREVIOUS_TAG}..HEAD" --pretty=format:"%B" --no-merges > release_notes.md
+            else
+              git log -1 --pretty=format:"%B" > release_notes.md
+            fi
+          else
+            git log -1 --pretty=format:"%B" > release_notes.md
+          fi
+
+          # Fallback jika file kosong
+          if [ ! -s release_notes.md ]; then
+            echo "Pembaruan aplikasi versi ${{ env.RELEASE_TAG }}." > release_notes.md
+          fi
+
+          echo "=== Catatan Rilis yang Digenerate ==="
+          cat release_notes.md
+          echo "====================================="
+
+      - name: Publish (GitHub)
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.APP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
+          body_path: release_notes.md
+          files: build/app/outputs/flutter-apk/PresensiKu-${{ env.RELEASE_TAG }}.apk
+          fail_on_unmatched_files: true
