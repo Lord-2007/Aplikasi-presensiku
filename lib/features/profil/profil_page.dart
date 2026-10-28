@@ -312,7 +312,7 @@ class ProfilPage extends StatelessWidget {
               dense: true,
               leading: Icon(Icons.contact_support, color: kGreen),
               title: Text('Kontak Support HRD'),
-              subtitle: Text('helpdesk@menaratekno.com · (021) 555-0199'),
+              subtitle: Text('helpdesk@uty.ac.id · (0274) 623-306'),
             ),
           ],
         ),
@@ -439,7 +439,7 @@ class ProfilPage extends StatelessWidget {
                 ]),
               ),
               const Center(
-                child: Text('PresensiKu v1.0.0 · PT Menara Tekno Nusantara',
+                child: Text('PresensiKu v1.0.0 · Universitas Teknologi Yogyakarta',
                     style: TextStyle(color: kMuted, fontSize: 11)),
               ),
             ]),

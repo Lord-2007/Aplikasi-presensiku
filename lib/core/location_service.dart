@@ -19,11 +19,12 @@ class OfficeLocationCheck {
 }
 
 class LocationService {
-  // Koordinat Kantor HQ Menara Tekno (Sudirman Kav. 21, Jakarta Selatan)
-  static const String officeName = 'HQ Menara Tekno';
-  static const String officeAddress = 'Jl. Jend. Sudirman Kav. 21, Jakarta Selatan';
-  static const double officeLatitude = -6.225586;
-  static const double officeLongitude = 106.824681;
+  // Koordinat Kampus 1 UTY (Universitas Teknologi Yogyakarta)
+  static const String officeName = 'UTY Kampus 1 Yogyakarta';
+  static const String officeAddress =
+      'Jl. Siliwangi (Ring Road Utara), Jombor, Sleman, D.I. Yogyakarta 55285';
+  static const double officeLatitude = -7.747344;
+  static const double officeLongitude = 110.355519;
   static const double maxRadiusMeters = 100.0; // Radius toleransi 100 meter
 
   /// Format jarak agar mudah dibaca pengguna (meter / km)
@@ -35,7 +36,7 @@ class LocationService {
     }
   }
 
-  /// Memeriksa status GPS, izin, dan menghitung jarak terhadap kantor HQ
+  /// Memeriksa status GPS, izin, dan menghitung jarak terhadap titik lokasi kantor / kampus
   static Future<OfficeLocationCheck> checkLocationProximity() async {
     try {
       // 1. Cek apakah GPS aktif
@@ -87,7 +88,7 @@ class LocationService {
         );
       }
 
-      // 4. Hitung jarak dari kantor HQ
+      // 4. Hitung jarak dari UTY Kampus 1
       final distance = Geolocator.distanceBetween(
         officeLatitude,
         officeLongitude,
@@ -120,4 +121,3 @@ class LocationService {
     return await Geolocator.openAppSettings();
   }
 }
-

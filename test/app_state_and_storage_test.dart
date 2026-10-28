@@ -56,7 +56,7 @@ void main() {
         fotoPath: '/dummy/selfie.jpg',
         latitude: -6.225586,
         longitude: 106.824681,
-        customLokasi: 'HQ Menara Tekno (Radius Valid)',
+        customLokasi: 'UTY Kampus 1 Yogyakarta (Radius Valid)',
       );
       expect(AppState.clockIn.value, clockInTime);
 

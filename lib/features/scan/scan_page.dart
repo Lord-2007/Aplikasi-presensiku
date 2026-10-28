@@ -1,8 +1,7 @@
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../core_imports.dart';
 
-/// Kode QR kantor harus diawali teks ini (contoh isi QR: PRESENSIKU-HQ-MENARA-TEKNO).
-/// Nantinya validasi dilakukan oleh server.
+/// Kode QR presensi harus diawali teks ini (contoh isi QR: PRESENSIKU-UTY-KAMPUS-1).
 const kQrPrefix = 'PRESENSIKU';
 
 class ScanPage extends StatefulWidget {
@@ -43,7 +42,7 @@ class _ScanPageState extends State<ScanPage> {
       _handled = true;
       await AppState.doClockIn(
         time: now,
-        customLokasi: 'HQ Menara Tekno (Scan QR)',
+        customLokasi: '${LocationService.officeName} (Scan QR)',
         customKeterangan: 'Scan QR Presensi Valid',
       );
       if (!mounted) return;
@@ -53,7 +52,7 @@ class _ScanPageState extends State<ScanPage> {
       _handled = true;
       await AppState.doClockOut(
         time: now,
-        customLokasi: 'HQ Menara Tekno (Scan QR)',
+        customLokasi: '${LocationService.officeName} (Scan QR)',
       );
       if (!mounted) return;
       Navigator.pop(context);
@@ -77,7 +76,7 @@ class _ScanPageState extends State<ScanPage> {
         body: Column(children: [
           AppHeader(
             'Scan QR Presensi',
-            'Arahkan kamera ke kode QR kantor',
+            'Arahkan kamera ke kode QR kampus',
             back: true,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -158,10 +157,10 @@ class _ScanPageState extends State<ScanPage> {
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Color(0xFFE0E7FF),
-                    child: Icon(Icons.apartment, color: kPrimary),
+                    child: Icon(Icons.school, color: kPrimary),
                   ),
-                  title: Text('HQ Menara Tekno', style: TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text('Lobi Utama · Lantai 1 · Menara Sudirman'),
+                  title: Text(LocationService.officeName, style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text('Gedung Utama Kampus 1 UTY · Jl. Siliwangi, Sleman'),
                 ),
               ),
               const SizedBox(height: 8),
@@ -172,7 +171,7 @@ class _ScanPageState extends State<ScanPage> {
                 ),
                 icon: const Icon(Icons.qr_code_2, color: kPrimary),
                 label: const Text('Simulasi Scan QR Presensi (Demo)'),
-                onPressed: () => _processBarcode('PRESENSIKU-HQ-MENARA-TEKNO'),
+                onPressed: () => _processBarcode('PRESENSIKU-UTY-KAMPUS-1'),
               ),
               const SizedBox(height: 10),
               const Text(

@@ -60,10 +60,10 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
         nip: json['nip'] as String? ?? '19940812',
         nama: json['nama'] as String? ?? 'Bucai Santoso',
-        jabatan: json['jabatan'] as String? ?? 'Software Engineer',
-        department: json['department'] as String? ?? 'Engineering',
-        lokasi: json['lokasi'] as String? ?? 'HQ Menara Tekno',
-        email: json['email'] as String? ?? 'bucai.santoso@menaratekno.com',
+        jabatan: json['jabatan'] as String? ?? 'Staff Akademik & TI',
+        department: json['department'] as String? ?? 'Teknologi Informasi',
+        lokasi: json['lokasi'] as String? ?? 'UTY Kampus 1 Yogyakarta',
+        email: json['email'] as String? ?? 'bucai.santoso@uty.ac.id',
         phone: json['phone'] as String? ?? '+62 812-3456-7890',
         sisaCuti: json['sisaCuti'] as int? ?? 8,
         biometricEnabled: json['biometricEnabled'] as bool? ?? true,
@@ -72,10 +72,10 @@ class UserModel {
   static const defaultUser = UserModel(
     nip: '19940812',
     nama: 'Bucai Santoso',
-    jabatan: 'Software Engineer',
-    department: 'Engineering',
-    lokasi: 'HQ Menara Tekno',
-    email: 'bucai.santoso@menaratekno.com',
+    jabatan: 'Staff Akademik & TI',
+    department: 'Teknologi Informasi',
+    lokasi: 'UTY Kampus 1 Yogyakarta',
+    email: 'bucai.santoso@uty.ac.id',
     phone: '+62 812-3456-7890',
     sisaCuti: 8,
     biometricEnabled: true,
@@ -157,7 +157,7 @@ class AttendanceRecord {
             ? DateTime.tryParse(json['clockOut'] as String)
             : null,
         status: json['status'] as String? ?? 'Hadir',
-        lokasi: json['lokasi'] as String? ?? 'HQ Menara Tekno',
+        lokasi: json['lokasi'] as String? ?? 'UTY Kampus 1 Yogyakarta',
         keterangan: json['keterangan'] as String?,
         fotoPath: json['fotoPath'] as String?,
         latitude: (json['latitude'] as num?)?.toDouble(),
@@ -185,7 +185,7 @@ class CutiRecord {
     required this.alasan,
     required this.status,
     required this.createdAt,
-    this.penyetuju = 'Dwi Maharani · Engineering Manager',
+    this.penyetuju = 'Dwi Maharani · Kepala Bagian TI',
   });
 
   CutiRecord copyWith({
@@ -237,6 +237,6 @@ class CutiRecord {
         createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
             DateTime.now(),
         penyetuju: json['penyetuju'] as String? ??
-            'Dwi Maharani · Engineering Manager',
+            'Dwi Maharani · Kepala Bagian TI',
       );
 }

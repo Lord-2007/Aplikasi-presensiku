@@ -120,7 +120,7 @@ class _ClockInPageState extends State<ClockInPage> {
       // Fallback jika GPS tidak tersedia
       await AppState.doClockIn(
         time: now,
-        customLokasi: 'HQ Menara Tekno (Manual/Offline)',
+        customLokasi: '${LocationService.officeName} (Manual/Offline)',
         customKeterangan: 'Koordinat GPS tidak tersedia',
         fotoPath: _selfieFile?.path,
       );

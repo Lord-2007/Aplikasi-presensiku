@@ -146,7 +146,7 @@ class LocalDb {
         clockIn: DateTime(now.year, now.month, 4, 8, 12),
         clockOut: DateTime(now.year, now.month, 4, 17, 5),
         status: 'Terlambat',
-        lokasi: 'HQ Menara Tekno',
+        lokasi: 'UTY Kampus 1 Yogyakarta',
         keterangan: 'Terlambat 12 menit',
       ),
       AttendanceRecord(
@@ -155,7 +155,7 @@ class LocalDb {
         clockIn: DateTime(now.year, now.month, 3, 7, 58),
         clockOut: DateTime(now.year, now.month, 3, 17, 2),
         status: 'Hadir',
-        lokasi: 'HQ Menara Tekno',
+        lokasi: 'UTY Kampus 1 Yogyakarta',
         keterangan: 'Tepat waktu',
       ),
       AttendanceRecord(

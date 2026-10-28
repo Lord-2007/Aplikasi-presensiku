@@ -16,7 +16,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _hide = true;
   bool _isLoading = false;
 
-  // Demo: akun dibuat admin HRD
+  // Akun default kepegawaian
   static const _demoNip = '19940812';
   static const _demoPass = '123456';
 
@@ -25,13 +25,6 @@ class _LoginPageState extends State<LoginPage> {
     _nip.dispose();
     _pass.dispose();
     super.dispose();
-  }
-
-  void _fillDemo() {
-    setState(() {
-      _nip.text = _demoNip;
-      _pass.text = _demoPass;
-    });
   }
 
   Future<void> _login() async {
@@ -43,11 +36,10 @@ class _LoginPageState extends State<LoginPage> {
     final nipText = _nip.text.trim();
     final passText = _pass.text.trim();
 
-    // Terima akun demo atau NIP apapun yang valid
-    final isDemo = (nipText == _demoNip && passText == _demoPass);
+    final isDefault = (nipText == _demoNip && passText == _demoPass);
     final isValidGeneric = (nipText.length >= 4 && passText.length >= 4);
 
-    if (isDemo || isValidGeneric) {
+    if (isDefault || isValidGeneric) {
       await AppState.login(nipInput: nipText, passwordInput: passText);
 
       if (!mounted) return;
@@ -70,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('NIP atau kata sandi salah. Gunakan akun demo untuk masuk.'),
+          content: Text('NIP atau kata sandi salah. Silakan periksa kembali.'),
           backgroundColor: kRed,
         ),
       );
@@ -81,7 +73,6 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 700));
 
-    // Auto login dengan akun demo
     await AppState.login(nipInput: _demoNip, passwordInput: _demoPass);
 
     if (!mounted) return;
@@ -196,15 +187,9 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(color: kPrimary, fontWeight: FontWeight.w600),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextButton.icon(
-                      onPressed: _fillDemo,
-                      icon: const Icon(Icons.auto_fix_high, size: 16),
-                      label: const Text('Isi Otomatis Akun Demo (19940812 / 123456)'),
-                    ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 24),
                     const Text(
-                      'Akun dibuat oleh admin HRD.\nHubungi HRD jika lupa kata sandi.',
+                      'Akun dibuat oleh admin HRD / Kepegawaian.\nHubungi administrator jika lupa kata sandi.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: kMuted, fontSize: 12),
                     ),

@@ -71,8 +71,8 @@ class AppState {
         nama: 'Karyawan ($nipInput)',
         jabatan: 'Staff Operasional',
         department: 'Operasional',
-        lokasi: 'HQ Menara Tekno',
-        email: 'karyawan.$nipInput@menaratekno.com',
+        lokasi: 'UTY Kampus 1 Yogyakarta',
+        email: 'karyawan.$nipInput@uty.ac.id',
         phone: '+62 812-9876-5432',
         sisaCuti: 12,
       );
