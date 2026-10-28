@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../core_imports.dart';
 
 class RiwayatPage extends StatelessWidget {
@@ -14,6 +15,103 @@ class RiwayatPage extends StatelessWidget {
           ]),
         ),
       );
+
+  void _showDetailModal(BuildContext context, AttendanceRecord rec) {
+    final hasSelfie = rec.fotoPath != null && File(rec.fotoPath!).existsSync();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).padding.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Detail Presensi · ${rec.date}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const Divider(),
+            if (hasSelfie) ...[
+              const SizedBox(height: 8),
+              const Text('Foto Verifikasi Wajah:',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kMuted)),
+              const SizedBox(height: 8),
+              Container(
+                height: 180,
+                width: double.infinity,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kGreen, width: 2),
+                ),
+                child: Image.file(
+                  File(rec.fotoPath!),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.access_time, color: kPrimary),
+              title: const Text('Waktu Presensi'),
+              subtitle: Text(
+                'Masuk: ${rec.clockIn != null ? '${hm(rec.clockIn!)} WIB' : '--:--'}  |  Pulang: ${rec.clockOut != null ? '${hm(rec.clockOut!)} WIB' : '--:--'}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              trailing: StatusBadge(
+                rec.status,
+                rec.status == 'Terlambat'
+                    ? kYellow
+                    : (rec.status == 'Hadir' ? kGreen : kPrimary),
+              ),
+            ),
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.place, color: kGreen),
+              title: const Text('Lokasi / Geofence'),
+              subtitle: Text(rec.lokasi),
+            ),
+            if (rec.latitude != null && rec.longitude != null)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.gps_fixed, color: kPrimary),
+                title: const Text('Koordinat GPS Valid'),
+                subtitle: Text(
+                  '${rec.latitude!.toStringAsFixed(6)}, ${rec.longitude!.toStringAsFixed(6)}',
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ),
+            if (rec.keterangan != null && rec.keterangan!.isNotEmpty)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.info_outline, color: kMuted),
+                title: const Text('Catatan Sistem'),
+                subtitle: Text(rec.keterangan!),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Column(children: [
@@ -88,6 +186,7 @@ class RiwayatPage extends StatelessWidget {
                           // Ekstrak hari dari yyyy-MM-dd
                           final parts = rec.date.split('-');
                           final dayDisplay = parts.length == 3 ? parts[2] : rec.date;
+                          final hasPhoto = rec.fotoPath != null && File(rec.fotoPath!).existsSync();
 
                           return Container(
                             decoration: BoxDecoration(
@@ -100,6 +199,7 @@ class RiwayatPage extends StatelessWidget {
                             ),
                             child: ListTile(
                               contentPadding: EdgeInsets.zero,
+                              onTap: () => _showDetailModal(context, rec),
                               leading: Container(
                                 width: 44,
                                 height: 44,
@@ -128,6 +228,10 @@ class RiwayatPage extends StatelessWidget {
                                       fontSize: 14,
                                     ),
                                   ),
+                                  if (hasPhoto) ...[
+                                    const SizedBox(width: 6),
+                                    const Icon(Icons.camera_alt, size: 14, color: kPrimary),
+                                  ],
                                   if (isToday) ...[
                                     const SizedBox(width: 6),
                                     Container(

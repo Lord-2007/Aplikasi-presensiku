@@ -90,6 +90,9 @@ class AttendanceRecord {
   final String status; // 'Hadir', 'Terlambat', 'Izin', 'Cuti'
   final String lokasi;
   final String? keterangan;
+  final String? fotoPath;
+  final double? latitude;
+  final double? longitude;
 
   const AttendanceRecord({
     required this.id,
@@ -99,6 +102,9 @@ class AttendanceRecord {
     required this.status,
     required this.lokasi,
     this.keterangan,
+    this.fotoPath,
+    this.latitude,
+    this.longitude,
   });
 
   AttendanceRecord copyWith({
@@ -109,6 +115,9 @@ class AttendanceRecord {
     String? status,
     String? lokasi,
     String? keterangan,
+    String? fotoPath,
+    double? latitude,
+    double? longitude,
   }) {
     return AttendanceRecord(
       id: id ?? this.id,
@@ -118,6 +127,9 @@ class AttendanceRecord {
       status: status ?? this.status,
       lokasi: lokasi ?? this.lokasi,
       keterangan: keterangan ?? this.keterangan,
+      fotoPath: fotoPath ?? this.fotoPath,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -129,6 +141,9 @@ class AttendanceRecord {
         'status': status,
         'lokasi': lokasi,
         'keterangan': keterangan,
+        'fotoPath': fotoPath,
+        'latitude': latitude,
+        'longitude': longitude,
       };
 
   factory AttendanceRecord.fromJson(Map<String, dynamic> json) =>
@@ -144,6 +159,9 @@ class AttendanceRecord {
         status: json['status'] as String? ?? 'Hadir',
         lokasi: json['lokasi'] as String? ?? 'HQ Menara Tekno',
         keterangan: json['keterangan'] as String?,
+        fotoPath: json['fotoPath'] as String?,
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
       );
 }
 

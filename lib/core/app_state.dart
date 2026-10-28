@@ -95,7 +95,14 @@ class AppState {
   }
 
   /// Lakukan Clock In
-  static Future<void> doClockIn({DateTime? time, String? customLokasi}) async {
+  static Future<void> doClockIn({
+    DateTime? time,
+    String? customLokasi,
+    String? fotoPath,
+    double? latitude,
+    double? longitude,
+    String? customKeterangan,
+  }) async {
     final now = time ?? DateTime.now();
     clockIn.value = now;
 
@@ -104,11 +111,11 @@ class AppState {
 
     // Evaluasi status keterlambatan (Jam kerja 08:00 WIB)
     String status = 'Hadir';
-    String? ket = 'Tepat waktu';
+    String? ket = customKeterangan ?? 'Tepat waktu';
     if (now.hour > 8 || (now.hour == 8 && now.minute > 5)) {
       final lateMinutes = (now.hour - 8) * 60 + now.minute;
       status = 'Terlambat';
-      ket = 'Terlambat $lateMinutes menit';
+      ket = customKeterangan ?? 'Terlambat $lateMinutes menit';
     }
 
     final newRecord = AttendanceRecord(
@@ -119,6 +126,9 @@ class AppState {
       status: status,
       lokasi: loc,
       keterangan: ket,
+      fotoPath: fotoPath,
+      latitude: latitude,
+      longitude: longitude,
     );
 
     await LocalDb.saveTodayAttendance(newRecord);
@@ -136,7 +146,12 @@ class AppState {
   }
 
   /// Lakukan Clock Out
-  static Future<void> doClockOut({DateTime? time}) async {
+  static Future<void> doClockOut({
+    DateTime? time,
+    String? customLokasi,
+    double? latitude,
+    double? longitude,
+  }) async {
     final now = time ?? DateTime.now();
     clockOut.value = now;
 
@@ -149,8 +164,11 @@ class AppState {
       clockIn: existing?.clockIn ?? clockIn.value ?? now,
       clockOut: now,
       status: existing?.status ?? 'Hadir',
-      lokasi: existing?.lokasi ?? user.value.lokasi,
-      keterangan: existing?.keterangan,
+      lokasi: customLokasi ?? existing?.lokasi ?? user.value.lokasi,
+      keterangan: existing?.keterangan ?? 'Selesai bertugas',
+      fotoPath: existing?.fotoPath,
+      latitude: latitude ?? existing?.latitude,
+      longitude: longitude ?? existing?.longitude,
     );
 
     await LocalDb.saveTodayAttendance(updatedRecord);

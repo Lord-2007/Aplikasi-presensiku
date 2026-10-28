@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:presensiku/core/local_db.dart';
 import 'package:presensiku/core/app_state.dart';
+import 'package:presensiku/core/location_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -50,7 +51,13 @@ void main() {
       final clockInTime = DateTime(2026, 10, 21, 7, 55);
       final clockOutTime = DateTime(2026, 10, 21, 17, 2);
 
-      await AppState.doClockIn(time: clockInTime);
+      await AppState.doClockIn(
+        time: clockInTime,
+        fotoPath: '/dummy/selfie.jpg',
+        latitude: -6.225586,
+        longitude: 106.824681,
+        customLokasi: 'HQ Menara Tekno (Radius Valid)',
+      );
       expect(AppState.clockIn.value, clockInTime);
 
       await AppState.doClockOut(time: clockOutTime);
@@ -60,11 +67,23 @@ void main() {
       final history = AppState.attendanceHistory.value;
       expect(history.isNotEmpty, true);
       expect(history.first.status, 'Hadir');
+      expect(history.first.fotoPath, '/dummy/selfie.jpg');
+      expect(history.first.latitude, -6.225586);
+      expect(history.first.longitude, 106.824681);
 
       // Simulasikan aplikasi di-restart
       await AppState.init();
       expect(AppState.clockIn.value, clockInTime);
       expect(AppState.clockOut.value, clockOutTime);
+      expect(AppState.attendanceHistory.value.first.fotoPath, '/dummy/selfie.jpg');
+    });
+  });
+
+  group('LocationService Tests', () {
+    test('Format distance correctly under and above 1km', () {
+      expect(LocationService.formatDistance(45.2), '45 m');
+      expect(LocationService.formatDistance(1500), '1.50 km');
+      expect(LocationService.formatDistance(0), '0 m');
     });
   });
 

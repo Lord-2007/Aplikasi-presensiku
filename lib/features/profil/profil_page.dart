@@ -137,43 +137,143 @@ class ProfilPage extends StatelessWidget {
   }
 
   void _showLokasi(BuildContext context) {
+    bool isChecking = false;
+    OfficeLocationCheck? check;
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).padding.bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Zona Lokasi Presensi',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            AppCard(
-              color: const Color(0xFFEEF2FF),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).padding.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(AppState.lokasi,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  const Text('Jl. Jend. Sudirman Kav. 21, Jakarta Selatan'),
-                  const SizedBox(height: 6),
-                  const Row(
-                    children: [
-                      StatusBadge('Radius GPS: 50 Meter', kGreen),
-                      SizedBox(width: 8),
-                      StatusBadge('Geofence Aktif', kPrimary),
-                    ],
+                  const Text(
+                    'Zona Lokasi Presensi',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              AppCard(
+                color: const Color(0xFFEEF2FF),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(LocationService.officeName,
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    const Text(LocationService.officeAddress),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        StatusBadge('Radius GPS: ${LocationService.maxRadiusMeters.toInt()} Meter', kGreen),
+                        const SizedBox(width: 8),
+                        const StatusBadge('Geofence Aktif', kPrimary),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (isChecking)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(width: 12),
+                        Text('Menghubungkan ke satelit GPS...', style: TextStyle(fontSize: 13, color: kMuted)),
+                      ],
+                    ),
+                  ),
+                )
+              else if (check != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: check!.isSuccess
+                        ? (check!.isWithinRadius ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB))
+                        : const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: check!.isSuccess
+                          ? (check!.isWithinRadius ? const Color(0xFFBBF7D0) : const Color(0xFFFDE68A))
+                          : const Color(0xFFFECACA),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            check!.isSuccess
+                                ? (check!.isWithinRadius ? Icons.check_circle : Icons.warning_amber)
+                                : Icons.error_outline,
+                            size: 18,
+                            color: check!.isSuccess
+                                ? (check!.isWithinRadius ? kGreen : kYellow)
+                                : kRed,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            check!.isSuccess
+                                ? (check!.isWithinRadius ? 'Dalam Radius Presensi' : 'Di Luar Radius Kantor')
+                                : 'Pemeriksaan GPS Gagal',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      if (check!.isSuccess) ...[
+                        Text('Jarak: ${check!.distanceFormatted} dari kantor',
+                            style: const TextStyle(fontSize: 12)),
+                        if (check!.position != null)
+                          Text('Posisi GPS: ${check!.position!.latitude.toStringAsFixed(5)}, ${check!.position!.longitude.toStringAsFixed(5)}',
+                              style: const TextStyle(fontSize: 11, color: kMuted)),
+                      ] else ...[
+                        Text(check!.errorMessage ?? 'Gagal membaca koordinat.',
+                            style: const TextStyle(fontSize: 12, color: kRed)),
+                      ],
+                    ],
+                  ),
+                ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.my_location, color: kPrimary),
+                label: Text(check == null ? 'Uji Sinyal & Posisi GPS Saya' : 'Uji Ulang Posisi GPS'),
+                onPressed: isChecking
+                    ? null
+                    : () async {
+                        setModalState(() => isChecking = true);
+                        final res = await LocationService.checkLocationProximity();
+                        setModalState(() {
+                          isChecking = false;
+                          check = res;
+                        });
+                      },
+              ),
+            ],
+          ),
         ),
       ),
     );

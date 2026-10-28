@@ -10,11 +10,48 @@ class ClockOutPage extends StatefulWidget {
 class _ClockOutPageState extends State<ClockOutPage> {
   bool _isSubmitting = false;
 
+  // Real GPS Location State
+  bool _isLoadingLocation = true;
+  OfficeLocationCheck? _locationCheck;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLocation();
+  }
+
+  Future<void> _checkLocation() async {
+    setState(() => _isLoadingLocation = true);
+    final result = await LocationService.checkLocationProximity();
+    if (!mounted) return;
+    setState(() {
+      _locationCheck = result;
+      _isLoadingLocation = false;
+    });
+  }
+
   Future<void> _submitClockOut() async {
     setState(() => _isSubmitting = true);
     final now = DateTime.now();
 
-    await AppState.doClockOut(time: now);
+    String finalLokasi = LocationService.officeName;
+    if (_locationCheck != null && _locationCheck!.isSuccess) {
+      final pos = _locationCheck!.position;
+      final distStr = _locationCheck!.distanceFormatted;
+      if (_locationCheck!.isWithinRadius) {
+        finalLokasi = '${LocationService.officeName} ($distStr)';
+      } else {
+        finalLokasi = 'Luar Kantor / WFH ($distStr)';
+      }
+      await AppState.doClockOut(
+        time: now,
+        customLokasi: finalLokasi,
+        latitude: pos?.latitude,
+        longitude: pos?.longitude,
+      );
+    } else {
+      await AppState.doClockOut(time: now);
+    }
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -90,8 +127,31 @@ class _ClockOutPageState extends State<ClockOutPage> {
                 const Divider(),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.place_outlined, color: kMuted),
-                  title: Text('${AppState.lokasi} · Radius Valid'),
+                  leading: Icon(
+                    _locationCheck?.isWithinRadius == true ? Icons.place : Icons.place_outlined,
+                    color: _locationCheck?.isWithinRadius == true ? kGreen : kMuted,
+                  ),
+                  title: Text(
+                    _isLoadingLocation
+                        ? 'Memeriksa GPS...'
+                        : (_locationCheck != null && _locationCheck!.isSuccess
+                            ? '${LocationService.officeName} · ${_locationCheck!.distanceFormatted}'
+                            : '${AppState.lokasi} · GPS Manual'),
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    _isLoadingLocation
+                        ? 'Menghubungkan satelit lokasi...'
+                        : (_locationCheck != null && _locationCheck!.isSuccess
+                            ? (_locationCheck!.isWithinRadius ? 'Dalam radius kantor' : 'Di luar radius kantor (WFH)')
+                            : (_locationCheck?.errorMessage ?? 'Layanan lokasi nonaktif')),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.refresh, size: 20, color: kPrimary),
+                    tooltip: 'Perbarui Lokasi',
+                    onPressed: _checkLocation,
+                  ),
                 ),
               ]),
             ),
