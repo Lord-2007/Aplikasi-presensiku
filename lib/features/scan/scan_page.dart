@@ -1,147 +1,106 @@
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../core_imports.dart';
 
-/// Pemindai QR Presensi Kantor
+/// Kode QR kantor harus diawali teks ini (contoh isi QR: PRESENSIKU-HQ-MENARA-TEKNO).
+/// Nantinya validasi dilakukan oleh server.
+const kQrPrefix = 'PRESENSIKU';
+
 class ScanPage extends StatefulWidget {
   const ScanPage({super.key});
   @override
   State<ScanPage> createState() => _ScanPageState();
 }
 
-class _ScanPageState extends State<ScanPage> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(seconds: 2))
-        ..repeat(reverse: true);
-
-  bool _isProcessing = false;
+class _ScanPageState extends State<ScanPage> {
+  final _ctrl = MobileScannerController(
+      facing: CameraFacing.back, detectionSpeed: DetectionSpeed.noDuplicates);
+  bool _handled = false;
 
   @override
   void dispose() {
-    _c.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
-  /// QR berhasil terbaca:
-  /// belum Clock In -> Clock In; sudah Clock In -> Clock Out.
-  Future<void> _onScanned() async {
-    if (_isProcessing) return;
-    setState(() => _isProcessing = true);
-
+  void _onDetect(BarcodeCapture capture) {
+    if (_handled) return;
+    final value = capture.barcodes
+        .map((b) => b.rawValue)
+        .firstWhere((v) => v != null, orElse: () => null);
+    if (value == null) return;
     final messenger = ScaffoldMessenger.of(context);
-    void info(String m, Color bg) => messenger.showSnackBar(
-          SnackBar(content: Text(m), backgroundColor: bg),
-        );
+    void info(String m) => messenger.showSnackBar(SnackBar(content: Text(m)));
 
+    if (!value.startsWith(kQrPrefix)) {
+      info('QR tidak valid untuk presensi');
+      return;
+    }
+    // QR valid, tanpa selfie:
+    // belum Clock In -> Clock In; sudah Clock In -> Clock Out.
     final now = DateTime.now();
     if (AppState.clockIn.value == null) {
-      await AppState.doClockIn(
-        time: now,
-        customLokasi: 'HQ Menara Tekno - QR Lobi Utama',
-      );
-      if (!mounted) return;
+      _handled = true;
+      AppState.clockIn.value = now;
       Navigator.pop(context);
-      info('Clock In berhasil via QR Code (${hm(now)} WIB)', kGreen);
+      info('Clock In berhasil via QR Code');
     } else if (AppState.clockOut.value == null) {
-      await AppState.doClockOut(time: now);
-      if (!mounted) return;
+      _handled = true;
+      AppState.clockOut.value = now;
       Navigator.pop(context);
-      info('Clock Out berhasil via QR Code (${hm(now)} WIB)', kGreen);
+      info('Clock Out berhasil via QR Code');
     } else {
-      setState(() => _isProcessing = false);
-      info('Presensi hari ini sudah lengkap (Masuk & Pulang)', kPrimary);
+      info('Presensi hari ini sudah lengkap');
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
         body: Column(children: [
-          const AppHeader('Scan QR Presensi', 'Arahkan kamera ke kode QR kantor',
-              back: true),
+          AppHeader('Scan QR Presensi', 'Arahkan kamera ke kode QR kantor',
+              back: true,
+              trailing: IconButton(
+                  icon: const Icon(Icons.flashlight_on, color: Colors.white),
+                  onPressed: () => _ctrl.toggleTorch())),
           Expanded(
             child: ListView(padding: const EdgeInsets.all(16), children: [
               Container(
                 height: 340,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                     color: const Color(0xFF111827),
                     borderRadius: BorderRadius.circular(20)),
-                child: Center(
-                  child: SizedBox(
-                    width: 220,
-                    height: 220,
-                    child: Stack(children: [
-                      Container(
-                          decoration: BoxDecoration(
-                              border: Border.all(color: kPrimary, width: 3),
-                              borderRadius: BorderRadius.circular(16))),
-                      const Center(
-                          child: Icon(Icons.qr_code_2, color: Colors.white, size: 120)),
-                      AnimatedBuilder(
-                        animation: _c,
-                        builder: (_, __) => Positioned(
-                            top: 10 + _c.value * 200,
-                            left: 6,
-                            right: 6,
-                            child: Container(
-                              height: 3,
-                              decoration: BoxDecoration(
-                                color: kPrimary,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: kPrimary.withValues(alpha: 0.8),
-                                    blurRadius: 8,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            )),
-                      ),
-                    ]),
+                child: Stack(fit: StackFit.expand, children: [
+                  MobileScanner(
+                    controller: _ctrl,
+                    onDetect: _onDetect,
+                    errorBuilder: (context, error, child) => const Center(
+                        child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                          'Kamera tidak dapat diakses. Pastikan izin kamera aktif di Pengaturan HP.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70)),
+                    )),
                   ),
-                ),
+                  Center(
+                    child: Container(
+                      width: 210,
+                      height: 210,
+                      decoration: BoxDecoration(
+                          border: Border.all(color: kPrimary, width: 3),
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ]),
               ),
               const SizedBox(height: 14),
               const AppCard(
                   child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: Color(0xFFE0E7FF),
-                        child: Icon(Icons.apartment, color: kPrimary),
-                      ),
-                      title: Text('HQ Menara Tekno',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text('Lobi Utama · Lantai 1 · QR Code Aktif'))),
-              FilledButton.icon(
-                style: FilledButton.styleFrom(
-                    backgroundColor: kPrimary,
-                    minimumSize: const Size.fromHeight(50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    )),
-                onPressed: _isProcessing ? null : _onScanned,
-                icon: _isProcessing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Icon(Icons.qr_code_scanner),
-                label: Text(
-                  _isProcessing
-                      ? 'Memproses Presensi...'
-                      : (AppState.clockIn.value == null
-                          ? 'Simulasi Scan: Clock In'
-                          : 'Simulasi Scan: Clock Out'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Tips: Jaga kamera tetap stabil dan pastikan seluruh frame QR code berada di dalam kotak pemindai.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: kMuted, fontSize: 12),
-              ),
+                      leading: Icon(Icons.apartment),
+                      title: Text('HQ Menara Tekno'),
+                      subtitle: Text('Lobi Utama · Lantai 1'))),
+              const Text('Tips: jaga kamera tetap stabil dan pastikan kode terlihat utuh.',
+                  style: TextStyle(color: kMuted, fontSize: 12)),
             ]),
           ),
         ]),
